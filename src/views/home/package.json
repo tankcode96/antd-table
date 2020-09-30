@@ -1,0 +1,7 @@
+{
+  "name": "home",
+  "version": "1.0.0",
+  "description": "home page",
+  "private": true,
+  "main": "./home.jsx"
+}
