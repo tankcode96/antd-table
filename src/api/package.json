@@ -1,0 +1,7 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "api function",
+  "main": "index.js",
+  "author": "tankm"
+}
