@@ -27,10 +27,10 @@ function paginationReducer(state, action) {
 };
 
 function TableComp(props) {
+  // 传入参数
+  const { requestFunc, requestQuery, extraPagination } = props;
   // 分页器useReducer
   const [pagination, paginationDispatch] = useReducer(paginationReducer, initPagination);
-  // 传入参数
-  const { requestFunc, requestQuery, paginationPos } = props;
   // 列表数据
   const [listData, setListData] = useState([]);
   // 加载状态
@@ -39,10 +39,9 @@ function TableComp(props) {
   /**
    * DidMount
    */
-  useEffect(
-    init(),
-    [],
-  );
+  useEffect(() => {
+    init()
+  }, []);
 
   /**
    * 初始化
@@ -60,13 +59,14 @@ function TableComp(props) {
     requestData();
   }
 
-  // 切换页码
-  function handlePageChange(pagination, filters, sorter, extra) {
+  /**
+   * 切换页码
+   * @param {number} current
+   * @param {number} pageSize
+   */
+  function handlePageChange(current, pageSize) {
     console.log('pageChange');
-    if(extra.action === 'paginate') {
-      const { current, pageSize } = pagination
-      requestData({ current, pageSize })
-    }
+    requestData({ current, pageSize })
   }
 
   /**
@@ -105,9 +105,12 @@ function TableComp(props) {
     <Table
       dataSource={listData}
       loading={loading}
-      pagination={{ ...pagination, position: paginationPos }}
+      pagination={{
+        ...pagination,
+        ...extraPagination,
+        onChange: handlePageChange
+       }}
       {...props}
-      onChange={handlePageChange}
     />
   )
 };
@@ -117,14 +120,14 @@ TableComp.defaultProps = {
   requestFunc: () => {},
   // 请求参数
   requestQuery: {},
-  // 分页显示位置
-  paginationPos: ['bottomRight']
+  // 分页器的其他配置
+  extraPagination: {},
 };
 
 TableComp.propTypes = {
   requestFunc: PropTypes.func.isRequired,
   requestQuery: PropTypes.object,
-  paginationPos: PropTypes.arrayOf(PropTypes.string),
+  extraPagination: PropTypes.object,
 };
 
 export default TableComp
