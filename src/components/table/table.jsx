@@ -4,7 +4,7 @@ import { Table } from 'antd';
 import './table.less';
 
 const reducerType = {
-  CHANGE_PAGE: 'CHANGE_PAGE',
+  UPDATE_PAGINATION: 'UPDATE_PAGINATION',
 };
 
 // 分页器
@@ -18,9 +18,8 @@ const initPagination = {
 function paginationReducer(state, action) {
   const { payload, type } = action;
   switch (type) {
-    case reducerType.CHANGE_PAGE:
-      state.current = payload;
-      return state;
+    case reducerType.UPDATE_PAGINATION:
+      return { ...state, ...payload };
     default:
       throw new Error({
         message: 'table组件的useReducer使用了不在定义范围内的Key~',
@@ -36,11 +35,21 @@ function TableComp(props) {
     paginationReducer,
     initPagination
   );
+
   // 列表数据
   const [listData, setListData] = useState([]);
+  useEffect(() => {
+    console.log('listData改变了', pagination)
+    props.onListChange && props.onListChange(pagination);
+  }, [listData]);
+
   // 加载状态
   const [loading, setLoading] = useState(false);
-
+  useEffect(() => {
+    console.log('loading改变了', loading)
+    props.onLoadingChange && props.onLoadingChange(loading);
+  }, [loading]);
+  
   /**
    * DidMount
    */
@@ -52,19 +61,21 @@ function TableComp(props) {
    * 初始化
    */
   function init() {
-    requestData({ current: 1, pageSize: 10 }).then(() => {
-      props.onListChange && props.onListChange(pagination, loading);
-    });
+    requestData({ current: 1, pageSize: 10 })
+      // .then(() => {
+      //   props.onListChange && props.onListChange({ pagination, loading });
+      // });
   };
 
-  /**
-   * refresh
-   */
-  function refreshList() {
-    requestData().then(() => {
-      props.onListChange && props.onListChange(pagination, loading);
-    });
-  };
+  // /**
+  //  * refresh
+  //  */
+  // function refreshList() {
+  //   requestData()
+  //    .then(() => {
+  //      props.onListChange && props.onListChange({ pagination, loading });
+  //    });
+  // };
 
   /**
    * 切换页码
@@ -72,9 +83,10 @@ function TableComp(props) {
    * @param {number} pageSize
    */
   function handlePageChange(current, pageSize) {
-    requestData({ current, pageSize }).then(() => {
-      props.onListChange && props.onListChange(pagination, loading);
-    });
+    requestData({ current, pageSize })
+      // .then(() => {
+      //   props.onListChange && props.onListChange({ pagination, loading });
+      // });
   };
 
   /**
@@ -96,11 +108,14 @@ function TableComp(props) {
         pageSize,
       };
       const result = await requestFunc(params);
-      setListData(result.data || []);
       paginationDispatch({
-        type: reducerType.CHANGE_PAGE,
-        payload: pageNum,
+        type: reducerType.UPDATE_PAGINATION,
+        payload: {
+          current: pageNum,
+          total: result.total
+        },
       });
+      setListData(result.data || []);
       return Promise.resolve(result);
     } catch (e) {
       return Promise.reject(e);
@@ -110,16 +125,18 @@ function TableComp(props) {
   };
 
   return (
-    <Table
-      dataSource={listData}
-      loading={loading}
-      pagination={{
-        ...pagination,
-        ...extraPagination,
-        onChange: handlePageChange,
-      }}
-      {...props}
-    />
+    <>
+      <Table
+        dataSource={listData}
+        loading={loading}
+        pagination={{
+          ...pagination,
+          ...extraPagination,
+          onChange: handlePageChange,
+        }}
+        {...props}
+      />
+    </>
   );
 }
 
@@ -134,6 +151,8 @@ TableComp.defaultProps = {
   validateFunc: () => true,
   // TableList数据更新回调
   onListChange: () => {},
+  // Table的loading更新回调
+  onLoadingChange: () => {},
 };
 
 TableComp.propTypes = {
@@ -142,6 +161,7 @@ TableComp.propTypes = {
   extraPagination: PropTypes.object,
   validateFunc: PropTypes.func,
   onListChange: PropTypes.func,
+  onLoadingChange: PropTypes.func,
 };
 
 export default TableComp;
