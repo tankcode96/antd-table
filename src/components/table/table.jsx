@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useReducer } from 'react';
+import React, {
+  useState,
+  forwardRef,
+  useEffect,
+  useReducer,
+  useImperativeHandle,
+} from 'react';
 import PropTypes from 'prop-types';
 import { Table } from 'antd';
 import './table.less';
@@ -27,9 +33,16 @@ function paginationReducer(state, action) {
   }
 }
 
-function TableComp(props) {
+const TableComp = forwardRef((props, ref) => {
   // 传入参数
-  const { rowKey, requestFunc, requestQuery, extraPagination } = props;
+  const {
+    useOutsideData,
+    dataSource,
+    rowKey,
+    requestFunc,
+    requestQuery,
+    extraPagination,
+  } = props;
   // 分页器useReducer
   const [pagination, paginationDispatch] = useReducer(
     paginationReducer,
@@ -48,6 +61,11 @@ function TableComp(props) {
     props.onLoadingChange && props.onLoadingChange(loading);
   }, [loading]);
 
+  useImperativeHandle(ref, () => ({
+    init,
+    refreshList,
+  }));
+
   /**
    * DidMount
    */
@@ -59,21 +77,12 @@ function TableComp(props) {
    * 初始化
    */
   function init() {
-    requestData({ current: 1, pageSize: 10 });
-    // .then(() => {
-    //   props.onListChange && props.onListChange({ pagination, loading });
-    // });
+    if (!useOutsideData) return requestData({ current: 1, pageSize: 10 });
   }
 
-  /**
-   * refresh
-   */
   function refreshList() {
-    requestData()
-    //  .then(() => {
-    //    props.onListChange && props.onListChange({ pagination, loading });
-    //  });
-  };
+    if (!useOutsideData) return requestData();
+  }
 
   /**
    * 切换页码
@@ -82,9 +91,6 @@ function TableComp(props) {
    */
   function handlePageChange(current, pageSize) {
     requestData({ current, pageSize });
-    // .then(() => {
-    //   props.onListChange && props.onListChange({ pagination, loading });
-    // });
   }
 
   /**
@@ -103,7 +109,7 @@ function TableComp(props) {
   }
 
   /**
-   * 请求数据
+   * 请求数据，也可通过调用此方法实现刷新列表
    * @param {number} current
    * @param {number} size
    * @returns<Promise>
@@ -125,12 +131,12 @@ function TableComp(props) {
         : requestQuery;
       // 修改参数Key值
       const params = transformData(sourceParams, props.queryTransformMap);
-      const result = await requestFunc(params);
+      const result = requestFunc ? await requestFunc(params) : [];
       if (unNeedPaging) {
-        setListData(result.data || []);
+        setListData(result || []);
         return Promise.resolve(result);
       }
-      const { list = [], pageNo, totalCount = 0 } = result.data;
+      const { list, pageNo, totalCount = 0 } = result;
       paginationDispatch({
         type: reducerType.UPDATE_PAGINATION,
         payload: {
@@ -150,8 +156,9 @@ function TableComp(props) {
   return (
     <>
       <Table
+        {...props}
         rowKey={rowKey}
-        dataSource={listData}
+        dataSource={useOutsideData ? dataSource : listData}
         loading={loading}
         pagination={
           !extraPagination.unNeedPaging
@@ -162,13 +169,16 @@ function TableComp(props) {
               }
             : false
         }
-        {...props}
       />
     </>
   );
-}
+});
 
 TableComp.defaultProps = {
+  // 使用外部的数据，不用请求数据
+  useOutsideData: false,
+  // useOutsideData为true时，此数据为表格数据
+  dataSource: [],
   // 表格的rowKey
   rowKey: '',
   // 请求function
@@ -188,8 +198,10 @@ TableComp.defaultProps = {
 };
 
 TableComp.propTypes = {
+  useOutsideData: PropTypes.bool,
+  dataSource: PropTypes.array,
   rowKey: PropTypes.string.isRequired,
-  requestFunc: PropTypes.func.isRequired,
+  requestFunc: PropTypes.func,
   requestQuery: PropTypes.object,
   queryTransformMap: PropTypes.object,
   extraPagination: PropTypes.object,
