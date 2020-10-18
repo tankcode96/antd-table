@@ -154,23 +154,21 @@ const TableComp = forwardRef((props, ref) => {
   }
 
   return (
-    <>
-      <Table
-        {...props}
-        rowKey={rowKey}
-        dataSource={useOutsideData ? dataSource : listData}
-        loading={loading}
-        pagination={
-          !extraPagination.unNeedPaging
-            ? {
-                ...pagination,
-                ...extraPagination,
-                onChange: handlePageChange,
-              }
-            : false
-        }
-      />
-    </>
+    <Table
+      {...props}
+      rowKey={rowKey}
+      dataSource={useOutsideData ? dataSource : listData}
+      loading={loading}
+      pagination={
+        !extraPagination.unNeedPaging
+          ? {
+              ...pagination,
+              ...extraPagination,
+              onChange: handlePageChange,
+            }
+          : false
+      }
+    />
   );
 });
 
